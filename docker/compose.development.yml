@@ -1,0 +1,118 @@
+name: nest-oracle
+
+x-service-base: &service-base
+  build:
+    context: ../server
+    dockerfile: Dockerfile
+    target: development
+  restart: unless-stopped
+  environment:
+    NODE_ENV: development
+    CORS_ORIGINS: http://localhost:3000,http://localhost:8000,http://localhost:9000
+    RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ORACLE_DSN: ''
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  api:
+    <<: *service-base
+    container_name: nest-oracle-api
+    command: ['bun', 'run', 'start:dev', 'api']
+    environment:
+      PORT: 8000
+      APP_NAME: api
+    ports:
+      - 8000:8000
+    volumes:
+      - ../server:/app
+      - /app/node_modules
+      - /app/dist
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8000/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  server:
+    <<: *service-base
+    container_name: nest-oracle-server
+    command: ['bun', 'run', 'start:dev', 'server']
+    environment:
+      PORT: 3000
+      APP_NAME: server
+    ports:
+      - 3000:3000
+    volumes:
+      - ../server:/app
+      - /app/node_modules
+      - /app/dist
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  worker:
+    <<: *service-base
+    container_name: nest-oracle-worker
+    command: ['bun', 'run', 'start:dev', 'worker']
+    environment:
+      PORT: 9000
+      APP_NAME: worker
+    ports:
+      - 9000:9000
+    volumes:
+      - ../server:/app
+      - /app/node_modules
+      - /app/dist
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:9000/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  rabbitmq:
+    image: rabbitmq:4.3.5-management-alpine
+    container_name: nest-oracle-rabbitmq
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  # Oracle integration point (planned, not yet wired — apps boot without it).
+  # Uncomment when the TypeORM/oracledb integration lands in DatabaseModule.
+  # oracle:
+  #   image: gvenzl/oracle-free:23-slim
+  #   container_name: nest-oracle-oracle
+  #   restart: unless-stopped
+  #   environment:
+  #     ORACLE_PASSWORD: change-me-in-dev-only
+  #     APP_USER: nest_oracle
+  #     APP_USER_PASSWORD: change-me-in-dev-only
+  #   ports:
+  #     - 1521:1521
+  #   healthcheck:
+  #     test: ['CMD-SHELL', 'healthcheck.sh --connect --user=system --password=$$ORACLE_PASSWORD']
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 120s
+  #   volumes:
+  #     - oracle-data:/opt/oracle/oradata
+
+volumes:
+  rabbitmq-data:
+  # oracle-data:
