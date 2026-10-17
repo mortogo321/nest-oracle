@@ -28,7 +28,7 @@ COPY . .
 RUN bun run build:all
 
 # --- production: minimal node runtime, non-root ---
-FROM node:26.10-alpine AS production
+FROM node:26.11-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json ./
