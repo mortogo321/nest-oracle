@@ -7,13 +7,13 @@
 #   rewrites the @app/common alias to relative paths so plain node runs it)
 
 # --- deps: install with bun ---
-FROM oven/bun:1.4.2-alpine AS deps
+FROM oven/bun:1.4.3-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 # --- development: hot reload via nest --watch ---
-FROM oven/bun:1.4.2-alpine AS development
+FROM oven/bun:1.4.3-alpine AS development
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -21,7 +21,7 @@ EXPOSE 3000 8000 9000
 CMD ["bun", "run", "start:dev"]
 
 # --- builder: compile all three apps ---
-FROM oven/bun:1.4.2-alpine AS builder
+FROM oven/bun:1.4.3-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
